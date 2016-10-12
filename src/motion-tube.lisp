@@ -29,6 +29,144 @@
 
 (in-package :olivaw)
 
+(defclass trajectory ()
+  ())
+
+(defclass tube-sample ()
+  ((trajectory
+     :initarg :trajectory
+     :initform nil
+     :reader sample-trajectory
+     :type (or trajectory null))
+   (score
+     :initarg :score
+     :initform 0
+     :accessor sample-score
+     :type number)
+   (width
+     :initarg :width
+     :initform 1.0
+     :accessor sample-width
+     :type number)))
 
 (defclass motion-tube ()
+  ((samples
+     :initarg :samples
+     :initform nil
+     :accessor tube-samples
+     :type (or (list tube-sample) null))))
+
+(defclass skill-type ()
+  ((name
+     :initarg :skill-name
+     :initform nil
+     :reader skill-name)
+   (length-threshold
+     :initarg :length-threshold
+     :initform 0
+     :reader length-threshold
+     :type number)
+   (curvature-threshold
+     :initarg :curvature-threshold
+     :initform 0
+     :reader curvature-threshold
+     :type number)))
+
+(defclass motion-skill ()
+  ((motion-tube
+     :initarg :tube
+     :initform nil
+     :accessor skill-tube
+     :type motion-tube)
+   (skill-type
+     :initarg :skill-type
+     :initform nil
+     :reader skill-type
+     :type skill-type)
+   (trajectory-length
+     :initarg :trajectory-length
+     :initform nil
+     :accessor trajectory-length
+     :type number)
+   (curvature
+     :initarg :curvature
+     :initform nil
+     :accessor curvature
+     :type number)))
+
+(defgeneric get-trajectory-length (trajectory))
+(defmethod get-trajectory-length (trajectory trajectory)
   )
+(defmethod get-trajectory-length ((tube tube-sample))
+  (get-trajectory-length (sample-trajectory tube)))
+(defmethod get-trajectory-length ((tube tube-sample))
+  (get-trajectory-length (sample-trajectory tube)))
+(defmethod get-trajectory-length ((tube motion-tube))
+  (get-trajectory-length (car (tube-samples morion-tube))))
+
+(defgeneric get-trajectory-curvature (trajectory))
+(defmethod get-trajectory-curvature (trajectory trajectory)
+  )
+(defmethod get-trajectory-curvature ((tube tube-sample))
+  (get-trajectory-curvature (sample-trajectory tube)))
+(defmethod get-trajectory-curvature ((tube tube-sample))
+  (get-trajectory-curvature (sample-trajectory tube)))
+(defmethod get-trajectory-curvature ((tube motion-tube))
+  (get-trajectory-curvature (car (tube-samples morion-tube))))
+
+(defun trajectory-to-trajectory-distance (tA tB)
+  )
+
+(defun tube-from-lambda (generator-lambda score-threshold)
+  (let* ((candidates (apply generator-lambda (list score-threshold)))
+         (candidates (mapcar (lambda (candidate)
+                               (let* ((trajectory (first candidate))
+                                      (score (second candidate)))
+                                 (make-instance 'tube-sample
+                                                :trajectory trajectory
+                                                :score score
+                                                :width 0.01)))
+                             candidates)))
+    (make-instance 'motion-tube
+                   :samples candidates)))
+
+(defun ensure-transform (loc)
+  (cond
+    ((typep loc cl-transforms:transform)
+      loc)
+    ((typep loc cl-transforms:pose)
+      (cl-transforms:make-transform (cl-transforms:origin loc)
+                                    (cl-transforms:orientation loc)))))
+
+(defun ensure-pose (loc)
+  (cond
+    ((typep loc cl-transforms:pose)
+      loc)
+    ((typep loc cl-transforms:transform)
+      (cl-transforms:make-pose (cl-transforms:translation loc)
+                               (cl-transforms:rotation loc)))))
+
+(defun get-suggested-object-pose (object-loc object-to-feature-loc suggested-feature-loc)
+  (let* ((object-loc (ensure-transform object-loc))
+         (object-to-feature-loc (ensure-transform object-to-feature-loc))
+         (suggested-feature-loc (ensure-transform suggested-feature-loc)))
+    (ensure-pose (cl-transform:transform* suggested-feature-loc (cl-transforms:transform-inv object-to-feature-loc)))))
+
+(defun skill-applicability (skill required-skill-type required-length required-curvature)
+  (let* ((skill-type (skill-type skill))
+         (length-threshold (length-threshold skill-type))
+         (curvature-threshold (curvature-threshold skill-type))
+         (length-threshold (if (< (length-threshold required-skill-type) length-threshold)
+                             (length-threshold required-skill-type)
+                             length-threshold))
+         (curvature-threshold (if (< (curvature-threshold required-skill-type) curvature-threshold)
+                             (curvature-threshold required-skill-type)
+                             curvature-threshold)))
+    ))
+
+(defun select-start ()
+  )
+
+(defun select-skill (skills skill-type required-trajectory)
+  )
+

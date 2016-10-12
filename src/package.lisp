@@ -31,4 +31,23 @@
 
 (defpackage :olivaw
   (:use :cl)
-  (:export #:motion-tube))
+  (:export #:motion-tube
+           #:tube-sample
+           #:trajectory
+           #:sample-width
+           #:sample-score
+           #:sample-trajectory
+           #:motion-skill
+           #:skill-tube
+           #:skill-type
+           #:skill-name
+           #:length-threshold
+           #:curvature-threshold
+           #:trajectory-length
+           #:curvature
+           #:get-trajectory-length
+           #:get-trajectory-curvature
+           #:trajectory-to-trajectory-distance
+           #:tube-from-lambda
+           #:select-start-configuration
+           #:select-skill))
