@@ -1,0 +1,22 @@
+<package>
+  <name>olivaw</name>
+  <version>0.1.0</version>
+
+  <description>
+    Supportive maneuver planner for giskard.
+  </description>
+
+  <author email="blandc@cs.uni-bremen.de">Mihai Pomarlan</author>
+  <maintainer email="blandc@cs.uni-bremen.de">Mihai Pomarlan</maintainer>
+  <license>BSD</license>
+
+  <url type="website">http://open-ease.org</url>
+  <url type="bugtracker">https://github.com/semroco/olivaw/issues</url>
+  <url type="repository">https://github.com/semroco/olivaw</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>cl_transforms_stamped</build_depend>
+
+  <run_depend>cl_transforms_stamped</run_depend>
+</package>
