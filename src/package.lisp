@@ -41,8 +41,7 @@
            #:skill-tube
            #:skill-type
            #:skill-name
-           #:length-threshold
-           #:curvature-threshold
+           #:skill-description-thresholds
            #:trajectory-length
            #:curvature
            #:get-trajectory-length

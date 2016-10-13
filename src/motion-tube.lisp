@@ -61,16 +61,11 @@
      :initarg :skill-name
      :initform nil
      :reader skill-name)
-   (length-threshold
-     :initarg :length-threshold
-     :initform 0
-     :reader length-threshold
-     :type number)
-   (curvature-threshold
-     :initarg :curvature-threshold
-     :initform 0
-     :reader curvature-threshold
-     :type number)))
+   (skill-description-thresholds
+     :initarg :description-thresholds
+     :initform nil
+     :reader skill-description-thresholds
+     :type list)))
 
 (defclass motion-skill ()
   ((motion-tube
@@ -83,16 +78,11 @@
      :initform nil
      :reader skill-type
      :type skill-type)
-   (trajectory-length
-     :initarg :trajectory-length
+   (skill-descriptions
+     :initarg :descriptions
      :initform nil
-     :accessor trajectory-length
-     :type number)
-   (curvature
-     :initarg :curvature
-     :initform nil
-     :accessor curvature
-     :type number)))
+     :accessor skill-descriptions
+     :type list)))
 
 (defgeneric get-trajectory-length (trajectory))
 (defmethod get-trajectory-length (trajectory trajectory)
@@ -152,24 +142,39 @@
          (suggested-feature-loc (ensure-transform suggested-feature-loc)))
     (ensure-pose (cl-transform:transform* suggested-feature-loc (cl-transforms:transform-inv object-to-feature-loc)))))
 
-(defun skill-applicability (skill required-skill-type required-length required-curvature)
+(defun get-thresholds (skill-type required-skill-type)
+  (let* ((required-skill-thresholds (skill-description-thresholds required-skill-type))
+         (act-skill-thresholds (skill-description-thresholds skill-type))
+         (thresholds (mapcar (lambda (req-skill-threshold)
+                               (let* ((req-name (car req-skill-threshold))
+                                      (req-val (cadr req-skill-threshold))
+                                      (act-val (cadr (assoc req-name act-skill-thresholds :test #'equal)))
+                                      (val (if (or (not act-val) (< req-val act-val))
+                                             req-val
+                                             act-val)))
+                                 (list req-name val)))
+                             required-skill-thresholds)))
+    thresholds))
+(defun get-skill-score (values required-values thresholds)
+  (let* ((scores (mapcar (lambda (req-val)
+                           (let* ((req-value-name (car req-val))
+                                  (req-value (cadr req-val))
+                                  (act-value (cadr (assoc req-value-name values :test #'equal)))
+                                  (threshold (cadr (assoc req-value-name thresholds :test #'equal))))
+                             (if (and act-value threshold)
+                               (let* ((dv (- act-value req-value))
+                                      (dv (/ dv threshold)))
+                                 (/ 1 (+ (* dv dv) 1)))
+                               0)))
+                         required-values)))
+    (apply #'* scores)))
+(defun skill-applicability (skill required-skill-type required-values)
   (let* ((skill-type (skill-type skill))
-         (length-threshold (length-threshold skill-type))
-         (curvature-threshold (curvature-threshold skill-type))
-         (length-threshold (if (< (length-threshold required-skill-type) length-threshold)
-                             (length-threshold required-skill-type)
-                             length-threshold))
-         (curvature-threshold (if (< (curvature-threshold required-skill-type) curvature-threshold)
-                             (curvature-threshold required-skill-type)
-                             curvature-threshold))
-         (length (trajectory-length skill))
-         (curvature (curvature skill))
-         (dl (- length required-length))
-         (dc (- curvature required-curvature))
-         (dl (/ dl length-threshold))
-         (dc (/ dc curvature-threshold)))
+         (thresholds (get-thresholds skill-type required-skill-type))
+         (values (skill-descriptions skill))
+         (score (get-skill-score values required-values thresholds)))
     (if (equal (skill-name skill-type) (skill-name required-skill-type))
-      (/ 1 (* (+ (* dl dl) 1) (+ (* dc dc) 1)))
+      score
       0)))
 
 (defun select-skill-internal (scored-skills best-score best-skill)
@@ -187,11 +192,9 @@
                          best-score)))
       (select-skill-internal next-scored-skills best-score best-skill))))
 
-(defun select-skill (skills skill-type required-trajectory)
-  (let* ((required-length (get-trajectory-length required-trajectory))
-         (required-curvature (get-trajectory-curvature required-trajectory))
-         (scored-skills (mapcar (lambda (skill)
-                                  (list skill (skill-applicability skill skill-type required-length required-curvature)))
+(defun select-skill (skills skill-type required-values)
+  (let* ((scored-skills (mapcar (lambda (skill)
+                                  (list skill (skill-applicability skill skill-type required-values)))
                                 skills))
          (best-score 0)
          (best-skill nil))
